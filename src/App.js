@@ -2,9 +2,11 @@ import { useReducer } from 'react';
 import './style.css'
 import DigitButton from './DigitButton';
 import OperatorButton from './OperatorButton';
+import RootOperator from './RootOperator';
 
 export const ACTIONS = {
   ADD_DIGIT: 'add-digit', 
+  ADD_ROOT: 'add-root',
   ADD_OPERATOR: 'add-operator', 
   ALL_CLEAR: 'all-clear', 
   DELETE_DIGIT: 'delete-digit', 
@@ -21,6 +23,8 @@ export function reducer(state, {type, payload}){
         overwrite:false,
         currentOperand: payload.digit
       }
+
+  
      if(state.currentOperand === '0' && payload.digit === '0') return state 
      if(state.currentOperand == null && payload.digit === '.') return state
      if( payload.digit === '.' && state.currentOperand.includes('.') ) return state
@@ -28,8 +32,53 @@ export function reducer(state, {type, payload}){
         ...state,
         currentOperand: `${state.currentOperand || ''}${payload.digit}`
       }
+
+      case ACTIONS.ADD_ROOT:
+        if(state.currentOperand == null && state.previousOperand == null) return state
+        if(state.currentOperand !== null && payload.root == '√' && state.currentOperand > 0){
+          if(Number.isInteger(Math.sqrt(parseFloat(state.currentOperand))))
+          return{
+            ...state,
+            currentOperand : Math.sqrt(parseFloat(state.currentOperand))
+          }
+          if(!Number.isInteger(Math.sqrt(parseFloat(state.currentOperand))))
+          return{
+            ...state,
+            currentOperand : (Math.sqrt(parseFloat(state.currentOperand))).toFixed(3)
+          }
+  
+      }
+        if(state.currentOperand !== null && payload.root == '²'){
+          if(Number.isInteger(parseFloat(state.currentOperand) * parseFloat(state.currentOperand)))
+          return{
+            ...state,
+            currentOperand : parseFloat(state.currentOperand) * parseFloat(state.currentOperand)
+          }
+          if(!Number.isInteger(parseFloat(state.currentOperand) * parseFloat(state.currentOperand)))
+          return{
+            ...state,
+            currentOperand : (parseFloat(state.currentOperand) * parseFloat(state.currentOperand)).toFixed(3)
+          }
+
+        }
+        
+        return state
+      
     case ACTIONS.ADD_OPERATOR:
-      if(state.currentOperand == null && state.previousOperand == null) return state
+      if(state.currentOperand == '-') return state
+      if(state.currentOperand == null && state.previousOperand == null && payload.operator !== '-') return state
+      if(state.currentOperand == null && state.previousOperand == null && payload.operator == '-') {
+        return {
+          ...state, 
+          currentOperand : `${payload.operator}`
+        }
+      }
+      if(state.currentOperand == null && state.operator == '-' && payload.operator == '-'){
+        return{
+          ...state,
+          currentOperand : `${payload.operator}`
+        }
+      }
       if(state.currentOperand == null){
         return{
           ...state,
@@ -102,13 +151,16 @@ function evaluate({currentOperand, previousOperand, operator}){
           break
      case '÷':
             computation = prev / current
-            break
+            break  
+  
   }
-  return computation.toString()
+  if(Number.isInteger(computation)){
+    return computation.toString()
+  }
+  return computation.toFixed(3).toString()
 }
 
 function App() {
-
   const [{previousOperand, currentOperand, operator}, dispatch] = useReducer(reducer, {});
 
   return (
@@ -117,9 +169,10 @@ function App() {
         <div className="previous-operand">{previousOperand} {operator}</div>
         <div className="current-operand">{currentOperand}</div>
       </div>
-      <button className='span-two' onClick={()=> dispatch({type: ACTIONS.ALL_CLEAR})}>AC</button>
+      <button onClick={()=> dispatch({type: ACTIONS.ALL_CLEAR})}>AC</button>
       <button onClick={()=> dispatch({type: ACTIONS.DELETE_DIGIT})}>DEL</button>
-      <OperatorButton operator='÷' dispatch={dispatch}/>
+      <RootOperator root='√' dispatch={dispatch}/>
+      <RootOperator root='²' dispatch={dispatch}/>
       <DigitButton digit='1' dispatch={dispatch}/>
       <DigitButton digit='2' dispatch={dispatch}/>
       <DigitButton digit='3' dispatch={dispatch}/>
@@ -134,7 +187,8 @@ function App() {
       <OperatorButton operator='-' dispatch={dispatch}/>
       <DigitButton digit='.' dispatch={dispatch}/>
       <DigitButton digit='0' dispatch={dispatch}/>
-      <button className='span-two' onClick={()=> dispatch({type: ACTIONS.EVALUATE})}>=</button>
+      <button onClick={()=> dispatch({type: ACTIONS.EVALUATE})}>=</button>
+      <OperatorButton operator='÷' dispatch={dispatch}/>
     </div>
   );
 }
